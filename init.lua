@@ -70,7 +70,7 @@ local DAT_MapName = core.readInteger(core.AOBScan("8D 54 24 08 52 68 ? ? ? ? B9 
 
 -- Install the special thing such that our information is put in a .sav file
 core.writeBytes(ptr_copyOfMapSectionAddressArray, core.readBytes(DAT_mapSectionAddressArray, mapSectionAddressArraySize))
-core.writeBytes(ptr_copyOfMapSectionAddressArray + (122 * MapSectionAddress.sizeof), MapSectionAddress:new(DAT_MapName, 1000, false, 1337):serialize())
+core.writeBytes(ptr_copyOfMapSectionAddressArray + (122 * MapSectionAddress.sizeof), MapSectionAddress:new(DAT_MapName, 1000, true, 1337):serialize())
 
 -- Hooks
 -- read map or sav
@@ -108,7 +108,7 @@ local registry = {}
 local api
 
 -- If the game saves the map state
-function onSerialize()
+local function onSerialize()
   for extensionName, callbacks in pairs(registry) do
     callbacks:serialize(some_handle)
   end
@@ -118,7 +118,7 @@ function onSerialize()
 end
 
 -- An object of this type is supplied by the extension
-SerializationCallbacks = {
+local SerializationCallbacks = {
 
   -- When called, the extension should use the handle to serialize all information
   serialize = function(self, handle) end,
@@ -130,7 +130,7 @@ SerializationCallbacks = {
 }
 
 -- This is backed by the library https://github.com/kuba--/zip
-Handle = {
+local Handle = {
   putContents = function(self, relativePath, data) end,
   getContents = function(self, relativePath) end,
 }
@@ -138,10 +138,14 @@ Handle = {
 api = {
 
   -- Returns a handle to the section, which is a zip in memory!
-  function registerSection(self, extensionName, serializationCallbacks)
+  registerSection = function(self, extensionName, serializationCallbacks)
     registry[extensionName] = serializationCallbacks
   end,
 
+  enable = function(self, config)
+    
+  end,
+  disable = function(self, config) end,
 }
 
 return api
