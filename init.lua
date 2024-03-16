@@ -1,105 +1,25 @@
 
-local ptr_codeReadSavMallocSize = core.AOBScan("68 ? ? ? ? 89 44 24 14") + 1
-local ptr_codeWriteSavMallocSize = core.AOBScan("68 ? ? ? ? 89 44 24 1C") + 1
+--- When starting to read or write a map/sav file, set maximum length to 128 MB
+local MAP_MEMORY_SIZE = 128 * 1000 * 1000
+--- Max 100 MB
+local CUSTOM_SECTION_SIZE = 100 * 1000 * 1000
 
-core.writeCodeInteger(ptr_codeReadSavMallocSize, 100 * 1000 * 1000)
-core.writeCodeInteger(ptr_codeWriteSavMallocSize, 100 * 1000 * 1000)
+local customSectionAddress
+local customSectionInfoObject
 
-local function boolToNumber(b)
-  if type(b) == "number" then
-    if b == 0 or b == 1 then
-      return b
-    else
-      error(debug.traceback(string.format("Not a bool: %s", b)))
-    end
-  end
+--- Claim a section id not used by the game
+local CUSTOM_SECTION_ID = 1337
 
-  if b == false then 
-    return 0 
-  elseif b == true then
-    return 1 
-  else 
-    error(debug.traceback(string.format("Not a bool: %s", b)))
-  end
-end
+--- Variable to hold the address of our custom array
+local customMapSectionInfoArray
 
-local MapSectionAddress = {
+local helpers = require('helpers')
 
-  sizeof = 16,
+local game = require('game')
 
-  new = function(self, address, size, compressed, id)
-    local o = {
-      address = address,
-      size = size,
-      compressed = compressed,
-      id = id,
-    }
-    
-    self.__index = self
-    
-    return setmetatable(o, self)
-  end,
+local luamemzip = require("luamemzip.dll")
 
-  serialize = function(self) 
-    local bytes = {}
-
-    for _, data in ipairs({
-      core.itob(self.address),
-      core.itob(0),
-      core.itob(self.size),
-      core.stob(boolToNumber(self.compressed)),
-      core.stob(self.id),
-    }) do
-      for k, v in ipairs(data) do
-        table.insert(bytes, v)
-      end
-    end
-
-    return bytes
-  end,
-
-}
-
-local DAT_mapSectionAddressArray = core.AOBScan("? ? ? ? 00 00 00 00 20 74 02 00 01 00 e9 03 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 09 04 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 ea 03 ? ? ? ? 00 00 00 00 40 e8 04 00 01 00 eb 03")
-local mapSectionAddressArraySize = 1968
-local entriesCount = 1968 / 123 -- of which the last is all 0s
-
-
-local ptr_copyOfMapSectionAddressArray = core.allocate(mapSectionAddressArraySize + MapSectionAddress.sizeof, true)
-local DAT_MapName = core.readInteger(core.AOBScan("8D 54 24 08 52 68 ? ? ? ? B9 ? ? ? ? E8 ? ? ? ? 83 3C 24 00") + 6)
-
--- Install the special thing such that our information is put in a .sav file
-core.writeBytes(ptr_copyOfMapSectionAddressArray, core.readBytes(DAT_mapSectionAddressArray, mapSectionAddressArraySize))
-core.writeBytes(ptr_copyOfMapSectionAddressArray + (122 * MapSectionAddress.sizeof), MapSectionAddress:new(DAT_MapName, 1000, true, 1337):serialize())
-
--- Hooks
--- read map or sav
-core.detourCode(function(registers)
-  if DAT_mapSectionAddressArray ~= core.readInteger(registers.ESP + 4) then error("argument is not what we expected") end
-  
-  print("readSav", string.format("%X", ptr_copyOfMapSectionAddressArray))
-  core.writeInteger(registers.ESP + 4, ptr_copyOfMapSectionAddressArray)
-  
-  return registers
-end, core.AOBScan("83 EC 0C 53 56 8B F1 8B 46 20"), 5)
-
--- write map or sav
-core.detourCode(function(registers)
-  if DAT_mapSectionAddressArray ~= core.readInteger(registers.ESP + 4) then error("argument is not what we expected") end
-  
-  print("writeSav", string.format("%X", ptr_copyOfMapSectionAddressArray))
-  core.writeInteger(registers.ESP + 4, ptr_copyOfMapSectionAddressArray)
-  
-  print("writeSav", string.format("%X", core.readInteger(registers.ESP + 4)))
-  
-  return registers
-end, core.AOBScan("83 EC 10 53 55 56 8B F1 8B 46 20"), 5)
-
--- on clear map sections before read map or sav
-core.detourCode(function(registers)
-  
-  return registers
-end, core.AOBScan("53 55 56 8B F1 57 33 FF 89 ? ? ? ? ? 89 ? ? ? ? ? 89 ? ? ? ? ? 89 ? ? ? ? ? E8 ? ? ? ?"), 5)
+local originalMapSectionInfoArray = core.AOBScan("? ? ? ? 00 00 00 00 20 74 02 00 01 00 e9 03 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 09 04 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 ea 03 ? ? ? ? 00 00 00 00 40 e8 04 00 01 00 eb 03")
 
 
 
@@ -130,9 +50,103 @@ local SerializationCallbacks = {
 }
 
 -- This is backed by the library https://github.com/kuba--/zip
-local Handle = {
-  putContents = function(self, relativePath, data) end,
-  getContents = function(self, relativePath) end,
+local createWriteHandle = function(memoryZip)
+
+  return {
+    
+    putContents = function(self, relativePath, data) 
+      local status, code, message = memoryZip:open_entry(relativePath)
+      status, code, message = memoryZip:write_entry(data)
+      status, code, message = memoryZip:close_entry()
+    end,
+
+  }
+
+end
+
+local createReadHandle = function(memoryZip)
+  
+  return {
+    
+    getContents = function(self, relativePath) 
+      local result
+
+      local status, code, message = memoryZip:open_entry(relativePath)
+      result, code, message = memoryZip:read_entry()
+      status, code, message = memoryZip:close_entry()
+
+      return result
+    end,
+
+  }
+
+end
+
+local wrapHandle = function(handle, prefix)
+
+  return {
+
+    putContents = function(self, relativePath, data)
+      return handle:putContents(prefix .. '/' .. relativePath, data)
+    end,
+
+    getContents = function(self, relativePath)
+      return handle:getContents(prefix .. '/' .. relativePath)
+    end,
+
+  }
+
+end
+
+local Deproxy = extensions.proxies.Deproxy
+
+local interface = {
+
+  beforeReadSav = function()
+    log(DEBUG, "before read sav")
+  end,
+  
+  afterReadSav = function()
+    log(DEBUG, "after read sav")
+  end,
+  
+  beforeWriteSav = function()
+    log(DEBUG, "before write sav")
+    
+    local zipHandle = luamemzip:MemoryZip(nil, nil, 'w')
+
+    for extensionName, callbacks in pairs(registry) do
+      callbacks:serialize(wrapHandle(createWriteHandle(zipHandle), extensionName))
+    end
+
+    local handle = createWriteHandle(zipHandle)
+    handle:putContents("framework/ucp-config.yml", yaml.dump(Deproxy(USER_CONFIG)))
+    
+    local data, length = zipHandle:serialize()
+
+    if data == nil or data == false then
+      error("could not serialize zip")
+    end
+
+    if length > CUSTOM_SECTION_SIZE then
+      error(string.format("data too long to store in file: %s", length))
+    end
+
+    customSectionInfoObject.size = length
+    game.updateCustomSectionInfoObject(customMapSectionInfoArray, customSectionInfoObject)
+
+    core.writeBytes(customSectionAddress, table.pack(string.byte(data, 1, length)))    
+
+    local f = io.open("sav-custom-section-on-write.zip", 'wb')
+    f:write(data)
+    f:close()
+
+  end,
+  
+  afterWriteSav = function()
+    log(DEBUG, "after write sav")
+  end,
+
 }
 
 api = {
@@ -143,9 +157,20 @@ api = {
   end,
 
   enable = function(self, config)
+    game.enlargeMemoryAllocation(MAP_MEMORY_SIZE)
+
+    customSectionAddress = core.allocate(CUSTOM_SECTION_SIZE, true)
+
+    customSectionInfoObject = helpers.MapSectionAddress:new(customSectionAddress, CUSTOM_SECTION_SIZE, true, CUSTOM_SECTION_ID)
+
+    customMapSectionInfoArray = game.createCustomSectionInfoArray(originalMapSectionInfoArray, customSectionInfoObject)
+
+    game.registerReadWriteSavHooks(originalMapSectionInfoArray, customMapSectionInfoArray, interface)
+
+  end,
+  disable = function(self, config)
     
   end,
-  disable = function(self, config) end,
 }
 
 return api
