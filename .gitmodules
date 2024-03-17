@@ -1,0 +1,3 @@
+[submodule "luamemzip"]
+	path = luamemzip
+	url = https://github.com/gynt/luamemzip

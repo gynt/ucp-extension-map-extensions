@@ -1,0 +1,6 @@
+meta:
+  version: 1.0.0
+files:
+- src: ".yml"
+- src: "*.lua"
+- src: "luamemzip/luamemzip/$(Configuration)/luamemzip.dll"
