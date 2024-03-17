@@ -2,6 +2,6 @@ type: module
 name: map-extensions
 version: 1.0.0
 author: Gynt
-display-name: Max Extensions
+display-name: Map Extensions
 dependencies:
-  framework: ^3.0.0
+  framework: ^3.0.1

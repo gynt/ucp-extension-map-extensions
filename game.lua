@@ -2,6 +2,8 @@
 
 local helpers = require('helpers')
 
+local originalMapSectionInfoArray = core.AOBScan("? ? ? ? 00 00 00 00 20 74 02 00 01 00 e9 03 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 09 04 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 ea 03 ? ? ? ? 00 00 00 00 40 e8 04 00 01 00 eb 03")
+
 local function enlargeMemoryAllocation(memorySize) 
     
   local ptr_codeReadSavMallocSize = core.AOBScan("68 ? ? ? ? 89 44 24 14") + 1
@@ -11,7 +13,7 @@ local function enlargeMemoryAllocation(memorySize)
   core.writeCodeInteger(ptr_codeWriteSavMallocSize, memorySize)
 end
 
-local function createCustomSectionInfoArray(originalArray, customSectionInfoObject)
+local function createCustomSectionInfoArray(originalMapSectionInfoArray, customSectionInfoObject)
   local mapSectionAddressArraySize = 1968
   local entriesCount = 1968 / 123 -- of which the last is all 0s
 
@@ -19,7 +21,7 @@ local function createCustomSectionInfoArray(originalArray, customSectionInfoObje
   local ptr_copyOfMapSectionAddressArray = core.allocate(mapSectionAddressArraySize + helpers.MapSectionAddress.sizeof, true)
 
   -- Install the special thing such that our information is put in a .sav file
-  core.writeBytes(ptr_copyOfMapSectionAddressArray, core.readBytes(originalArray, mapSectionAddressArraySize))
+  core.writeBytes(ptr_copyOfMapSectionAddressArray, core.readBytes(originalMapSectionInfoArray, mapSectionAddressArraySize))
   core.writeBytes(ptr_copyOfMapSectionAddressArray + (122 * helpers.MapSectionAddress.sizeof), customSectionInfoObject:serialize())
 
   return ptr_copyOfMapSectionAddressArray
@@ -29,7 +31,7 @@ local function updateCustomSectionInfoObject(ptr_copyOfMapSectionAddressArray, c
   core.writeBytes(ptr_copyOfMapSectionAddressArray + (122 * helpers.MapSectionAddress.sizeof), customSectionInfoObject:serialize())
 end
 
-local function registerReadWriteSavHooks(originalMapSectionInfoArray, customMapSectionInfoArray, callbacks)
+local function registerReadWriteSavHooks(customMapSectionInfoArray, customSectionID, callbacks)
     
   -- Hooks
   -- read map or sav
@@ -79,12 +81,29 @@ local function registerReadWriteSavHooks(originalMapSectionInfoArray, customMapS
 
     local sectionIDArray = directoryDataAddress + 28 + (4*150) + (4*150)
 
-    local sectionIDs = string.unpack("i", string.char(table.unpack(core.readBytes(sectionIDArray, 4*150))))
+    local sectionIDs = utils.unpack("<i", core.readString(sectionIDArray, 4*150))
 
+    local i = -1
+    for index, sid in ipairs(sectionIDs) do
+      if sid == customSectionID then
+        i = index - 1 -- lua is 1 based
+        break
+      end
+    end
 
+    if i == -1 then
 
-    callbacks.afterReadSavDirectory({
-      
+      callbacks.afterReadDirectoryOfSav({
+        size = 0,
+      })
+
+      return registers
+    end
+
+    local customSectionSizeOfSav = core.readInteger(uncompressedSizesArray + (4 * i))
+
+    callbacks.afterReadDirectoryOfSav({
+      size = customSectionSizeOfSav,
     })
 
     return registers 

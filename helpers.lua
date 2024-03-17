@@ -54,14 +54,7 @@ local MapSectionAddress = {
 
 }
 
-local i150table = {}
-
-for i = 1,150 do
-  table.insert(i150, 'i')
-end
-
 return {
   MapSectionAddress = MapSectionAddress,
   boolToNumber = boolToNumber,
-  i150 = '<' .. table.concat(i150table, '')
 }
