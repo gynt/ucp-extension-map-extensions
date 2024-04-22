@@ -45,7 +45,7 @@ local Deproxy = extensions.proxies.Deproxy
 
 --- Contains all handlers for all extensions
 local registry = {
-  framework = {
+  meta = {
     serialize = function(self, handle)
       handle:put("ucp-config.yml", yaml.dump(Deproxy(USER_CONFIG)))
       handle:put("extensions.yml", yaml.dump(Deproxy(USER_CONFIG['config-full']['load-order'])))
