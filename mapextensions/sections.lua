@@ -1,0 +1,42 @@
+
+---Deproxifies a table
+---@type fun(t: table):table
+local Deproxy = extensions.proxies.Deproxy
+
+---@type table<string, SerializationCallbacks>
+local sections = {
+  meta = {
+    serialize = function(self, handle)
+      handle:put("ucp-config.yml", yaml.dump(Deproxy(USER_CONFIG)))
+      handle:put("extensions.yml", yaml.dump(Deproxy(USER_CONFIG['config-full']['load-order'])))
+
+      local f = io.open("ucp/ucp-version.yml")
+      local versionInfo = yaml.parse(f:read("*all"))
+      handle:put("meta.yml", yaml.dump({
+        version = '1.0.0',
+        framework = versionInfo,
+      }))
+    end,
+
+    deserialize = function(self, handle)
+      local meta = yaml.parse(handle:get("meta.yml"))
+
+      if meta == nil then
+        error(debug.traceback("map file is missing meta information"))
+      elseif meta.version ~= "1.0.0" then
+        error(debug.traceback(string.format("map file was made using an unsupported version: %s", meta.version)))
+      end
+
+      local receivedConfig = handle:get("ucp-config.yml")
+      local extensions = handle:get("extensions.yml")
+
+      log(INFO, "map file was made using the following extensions:")
+      log(INFO, '\n' .. extensions)
+
+      log(INFO, "map file contained the following config:")
+      log(INFO, '\n' .. receivedConfig)
+    end,
+  }
+}
+
+return sections

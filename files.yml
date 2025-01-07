@@ -3,4 +3,6 @@ meta:
 files:
 - src: ".yml"
 - src: "*.lua"
+- src: "mapextensions/*.lua"
+  target: "mapextensions/"
 - src: "luamemzip/luamemzip/$(Configuration)/luamemzip.dll"
