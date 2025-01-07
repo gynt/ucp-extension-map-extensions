@@ -1,7 +1,7 @@
 meta:
   version: 1.0.0
 files:
-- src: ".yml"
+- src: "*.yml"
 - src: "*.lua"
 - src: "mapextensions/*.lua"
   target: "mapextensions/"
