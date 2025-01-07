@@ -24,26 +24,44 @@ local helpers = require('helpers')
 
 local game = require('game')
 
+---@class MemoryZip
+---@field open_entry fun(self: MemoryZip, entryname: string):boolean, number, err
+---@field read_entry fun(self: MemoryZip):boolean, number, err
+---@field write_entry fun(self: MemoryZip, contents: string):boolean, number, err
+---@field close_entry fun(self: MemoryZip):boolean, number, err
+---@field close fun(self: MemoryZip):boolean, number, err
+---@field serialize fun(self: MemoryZip):string, number Serialize and return data, length
+
+---@class luamemzip
+---@field MemoryZip fun(lib: luamemzip, data: string, compression: number|nil, mode:string):MemoryZip
 local luamemzip = require("luamemzip.dll")
 
 --- The api we return from this extension
-local api
+---@class mapextensions
+local api = {}
 
 
--- An object of this type is supplied by the extension
-local SerializationCallbacks = {
 
-  -- When called, the extension should use the handle to serialize all information
-  serialize = function(self, handle) end,
+--- An object of this type should be supplied by the extension
+---@class SerializationCallbacks
+local SerializationCallbacks = {}
 
-  -- When called, the extension should use the handle to deserialize all information
-  deserialize = function(self, handle) end,
+--- When called, the extension should use the handle to serialize all information
+---@param self SerializationCallbacks this
+---@param handle Handle the handle to serialize data
+---@return void
+function SerializationCallbacks.serialize(self, handle) end
 
-}
+--- When called, the extension should use the handle to deserialize all information
+---@param self SerializationCallbacks this
+---@param handle Handle the handle to deserialize data
+---@return void
+function SerializationCallbacks.deserialize(self, handle) end
 
 local Deproxy = extensions.proxies.Deproxy
 
 --- Contains all handlers for all extensions
+---@type table<string, SerializationCallbacks>
 local registry = {
   meta = {
     serialize = function(self, handle)
@@ -79,10 +97,22 @@ local registry = {
   }
 }
 
+---Handle to serialize data
+---@class WriteHandle
+local WriteHandle = {}
 
+---Put data into the .sav file
+---@param self WriteHandle this
+---@param path string path in the zip file to write to. Will be relative to the extension name
+---@param data string the data to write
+---@return void
+function WriteHandle.put(self, path , data ) end
 
--- This is backed by the library https://github.com/gynt/luamemzip
-local createWriteHandle = function(memoryZip, prefix)
+--- This is backed by the library https://github.com/gynt/luamemzip
+---@param memoryZip table
+---@param prefix string
+---@return WriteHandle
+local function createWriteHandle(memoryZip, prefix)
 
   if prefix == nil then prefix = "" else prefix = prefix .. "/" end
 
@@ -101,7 +131,22 @@ local createWriteHandle = function(memoryZip, prefix)
 
 end
 
-local createReadHandle = function(memoryZip, prefix)
+
+---Handle to serialize data
+---@class ReadHandle
+local ReadHandle = {}
+
+---Get data from the .sav file
+---@param self ReadHandle this
+---@param path string path in the zip file to read from. Will be relative to the extension name
+---@return void
+function ReadHandle.get(self, path ) end
+
+--- This is backed by the library https://github.com/gynt/luamemzip
+---@param memoryZip MemoryZip
+---@param prefix string
+---@return ReadHandle
+local function createReadHandle(memoryZip, prefix)
 
   if prefix == nil then prefix = "" else prefix = prefix .. "/" end
   
@@ -220,15 +265,6 @@ interface = {
 
 api = {
 
-  -- Returns a handle to the section, which is a zip in memory!
-  registerSection = function(self, extensionName, serializationCallbacks)
-    if registry[extensionName] ~= nil then 
-      error(debug.traceback(string.format("callbacks already registered for: %s", extensionName))) 
-    end
-
-    registry[extensionName] = serializationCallbacks
-  end,
-
   enable = function(self, config)
     game.enlargeMemoryAllocation(MAP_MEMORY_SIZE)
 
@@ -246,5 +282,18 @@ api = {
     
   end,
 }
+
+---Register custom section in .sav files
+---@param self table this module
+---@param extensionName string extension name of the extension registering the section
+---@param serializationCallbacks table functions for (de)serialization of data
+---@return void
+function api.registerSection(self, extensionName, serializationCallbacks)
+  if registry[extensionName] ~= nil then 
+    error(debug.traceback(string.format("callbacks already registered for: %s", extensionName))) 
+  end
+
+  registry[extensionName] = serializationCallbacks
+end
 
 return api
