@@ -1,4 +1,4 @@
-local helpers = require('.helpers')
+local helpers = require('mapextensions.helpers')
 
 local originalMapSectionInfoArray = core.AOBScan("? ? ? ? 00 00 00 00 20 74 02 00 01 00 e9 03 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 09 04 ? ? ? ? 00 00 00 00 20 74 02 00 01 00 ea 03 ? ? ? ? 00 00 00 00 40 e8 04 00 01 00 eb 03")
 
@@ -11,7 +11,7 @@ local function enlargeMemoryAllocation(memorySize)
   core.writeCodeInteger(ptr_codeWriteSavMallocSize, memorySize)
 end
 
-local function createCustomSectionInfoArray(originalMapSectionInfoArray, customSectionInfoObject)
+local function createCustomSectionInfoArray(customSectionInfoObject)
   local mapSectionAddressArraySize = 1968
   local entriesCount = 1968 / 123 -- of which the last is all 0s
 

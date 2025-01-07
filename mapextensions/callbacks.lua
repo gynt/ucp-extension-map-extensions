@@ -1,10 +1,10 @@
 ---@class MemoryZip
----@field open_entry fun(self: MemoryZip, entryname: string):boolean, number, err
----@field read_entry fun(self: MemoryZip):boolean, number, err
----@field write_entry fun(self: MemoryZip, contents: string):boolean, number, err
----@field close_entry fun(self: MemoryZip):boolean, number, err
----@field close fun(self: MemoryZip):boolean, number, err
----@field serialize fun(self: MemoryZip):string, number Serialize and return data, length
+---@field open_entry fun(self: MemoryZip, entryname: string):boolean, nil|number, nil|string returns true or false, error code, error message
+---@field read_entry fun(self: MemoryZip):data|nil, number, nil|err returns data, length, nil or nil, error code, error message
+---@field write_entry fun(self: MemoryZip, contents: string):boolean, nil|number, nil|string returns true or false, error code, error message
+---@field close_entry fun(self: MemoryZip):boolean, nil|number, nil|string returns true or false, error code, error message
+---@field close fun(self: MemoryZip):void
+---@field serialize fun(self: MemoryZip):data|nil, number, nil|err returns data, length, nil or nil, error code, error message
 
 
 ---@class luamemzip
@@ -14,7 +14,7 @@ local luamemzip = require("luamemzip.dll")
 local constants = require("mapextensions.constants")
 local memory = require("mapextensions.memory")
 local game = require("mapextensions.game")
-local registry = require("mapextensions.registry")
+local registry = require("mapextensions.registry").registry
 local handles = require("mapextensions.handles")
 
 --- The interface from the low level game logic to the higher level
@@ -57,7 +57,7 @@ local callbacks = {
     -- At this point, readSav has processed (decompressed) all sections, including the custom section
     local data = core.readString(memory.customSectionAddress, memory.customSectionInfoObject.size)
 
-    local f = io.open("sav-custom-section-on-read.zip", 'wb')
+    local f = io.open("ucp/.cache/sav-custom-section-on-read.zip", 'wb')
     f:write(data)
     f:close()
 
@@ -97,7 +97,7 @@ local callbacks = {
 
     core.writeBytes(memory.customSectionAddress, table.pack(string.byte(data, 1, length)))    
 
-    local f = io.open("sav-custom-section-on-write.zip", 'wb')
+    local f = io.open("ucp/.cache/sav-custom-section-on-write.zip", 'wb')
     f:write(data)
     f:close()
 
@@ -116,13 +116,13 @@ local SerializationCallbacks = {}
 
 ---When called, the extension should use the handle to serialize all information
 ---@param self SerializationCallbacks this
----@param handle Handle the handle to serialize data
+---@param handle WriteHandle the handle to serialize data
 ---@return void
 function SerializationCallbacks.serialize(self, handle) end
 
 ---When called, the extension should use the handle to deserialize all information
 ---@param self SerializationCallbacks this
----@param handle Handle the handle to deserialize data
+---@param handle ReadHandle the handle to deserialize data
 ---@return void
 function SerializationCallbacks.deserialize(self, handle) end
 

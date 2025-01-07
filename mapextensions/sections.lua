@@ -5,7 +5,8 @@ local Deproxy = extensions.proxies.Deproxy
 
 ---@type table<string, SerializationCallbacks>
 local sections = {
-  meta = {
+  framework = {
+    ---@param handle WriteHandle
     serialize = function(self, handle)
       handle:put("ucp-config.yml", yaml.dump(Deproxy(USER_CONFIG)))
       handle:put("extensions.yml", yaml.dump(Deproxy(USER_CONFIG['config-full']['load-order'])))
@@ -18,13 +19,17 @@ local sections = {
       }))
     end,
 
+    ---@param handle ReadHandle
     deserialize = function(self, handle)
+      if not handle:exists("meta.yml") then
+        log(INFO, "map file is missing meta information")  
+        return
+      end
+
       local meta = yaml.parse(handle:get("meta.yml"))
 
-      if meta == nil then
-        error(debug.traceback("map file is missing meta information"))
-      elseif meta.version ~= "1.0.0" then
-        error(debug.traceback(string.format("map file was made using an unsupported version: %s", meta.version)))
+      if meta.version ~= "1.0.0" then
+        log(WARNING, debug.traceback(string.format("map file was made using an unsupported version: %s", meta.version)))
       end
 
       local receivedConfig = handle:get("ucp-config.yml")
