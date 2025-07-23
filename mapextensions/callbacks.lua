@@ -49,7 +49,8 @@ local callbacks = {
     -- At this point, readSav has processed (decompressed) all sections, including the custom section
     local data = core.readString(memory.customSectionAddress, memory.customSectionInfoObject.size)
 
-    local f = io.open("ucp/.cache/sav-custom-section-on-read.zip", 'wb')
+    local f, err = io.open("ucp/.cache/sav-custom-section-on-read.zip", 'wb')
+    if f == nil then error(err) end
     f:write(data)
     f:close()
 
