@@ -89,7 +89,8 @@ local callbacks = {
 
     core.writeBytes(memory.customSectionAddress, table.pack(string.byte(data, 1, length)))    
 
-    local f = io.open("ucp/.cache/sav-custom-section-on-write.zip", 'wb')
+    local f, err = io.open("ucp/.cache/sav-custom-section-on-write.zip", 'wb')
+    if f == nil then error(err) end
     f:write(data)
     f:close()
 

@@ -35,8 +35,8 @@ function ReadHandle.get(self, path ) end
 ---Get whether path exists in .sav file
 ---@param self ReadHandle this
 ---@param path string path in the zip file to check for existence
----@return void
-function ReadHandle.exists(self, path ) end
+---@return boolean existence
+function ReadHandle.exists(self, path ) return false end
 
 
 --- An object of this type should be supplied by the extension
