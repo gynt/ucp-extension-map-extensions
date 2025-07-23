@@ -1,14 +1,6 @@
----@class MemoryZip
----@field open_entry fun(self: MemoryZip, entryname: string):boolean, nil|number, nil|string returns true or false, error code, error message
----@field read_entry fun(self: MemoryZip):data|nil, number, nil|err returns data, length, nil or nil, error code, error message
----@field write_entry fun(self: MemoryZip, contents: string):boolean, nil|number, nil|string returns true or false, error code, error message
----@field close_entry fun(self: MemoryZip):boolean, nil|number, nil|string returns true or false, error code, error message
----@field close fun(self: MemoryZip):void
----@field serialize fun(self: MemoryZip):data|nil, number, nil|err returns data, length, nil or nil, error code, error message
 
 
----@class luamemzip
----@field MemoryZip fun(lib: luamemzip, data: string, compression: number|nil, mode:string):MemoryZip
+---@type luamemzip
 local luamemzip = require("luamemzip.dll")
 
 local constants = require("mapextensions.constants")
@@ -110,21 +102,7 @@ local callbacks = {
 }
 
 
---- An object of this type should be supplied by the extension
----@class SerializationCallbacks
-local SerializationCallbacks = {}
 
----When called, the extension should use the handle to serialize all information
----@param self SerializationCallbacks this
----@param handle WriteHandle the handle to serialize data
----@return void
-function SerializationCallbacks.serialize(self, handle) end
-
----When called, the extension should use the handle to deserialize all information
----@param self SerializationCallbacks this
----@param handle ReadHandle the handle to deserialize data
----@return void
-function SerializationCallbacks.deserialize(self, handle) end
 
 
 return callbacks

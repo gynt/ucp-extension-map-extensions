@@ -30,11 +30,10 @@ api = {
 }
 
 ---Register custom section in .sav files
----@param self table this module
 ---@param extensionName string extension name of the extension registering the section
----@param serializationCallbacks table functions for (de)serialization of data
+---@param serializationCallbacks SerializationCallbacks functions for (de)serialization of data
 ---@return void
-function api.registerSection(self, extensionName, serializationCallbacks)
+function api:registerSection(extensionName, serializationCallbacks)
   if registry[extensionName] ~= nil then 
     error(debug.traceback(string.format("callbacks already registered for: %s", extensionName))) 
   end

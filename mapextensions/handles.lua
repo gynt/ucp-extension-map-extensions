@@ -1,14 +1,4 @@
 
----Handle to serialize data
----@class WriteHandle
-local WriteHandle = {}
-
----Put data into the .sav file
----@param self WriteHandle this
----@param path string path in the zip file to write to. Will be relative to the extension name
----@param data string the data to write
----@return void
-function WriteHandle.put(self, path , data ) end
 
 --- This is backed by the library https://github.com/gynt/luamemzip
 ---@param memoryZip MemoryZip
@@ -35,21 +25,7 @@ local function createWriteHandle(memoryZip, prefix)
 end
 
 
----Handle to serialize data
----@class ReadHandle
-local ReadHandle = {}
 
----Get data from the .sav file
----@param self ReadHandle this
----@param path string path in the zip file to read from. Will be relative to the extension name
----@return void
-function ReadHandle.get(self, path ) end
-
----Get whether path exists in .sav file
----@param self ReadHandle this
----@param path string path in the zip file to check for existence
----@return void
-  function ReadHandle.exists(self, path ) end
 
 --- This is backed by the library https://github.com/gynt/luamemzip
 ---@param memoryZip MemoryZip
