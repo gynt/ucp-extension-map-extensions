@@ -39,10 +39,13 @@ local function registerReadWriteSavHooks(customMapSectionInfoArray, customSectio
   originalReadSav = core.hookCode(function(this, ptrMapSectionAddressArray)
     if originalMapSectionInfoArray ~= ptrMapSectionAddressArray then error("argument is not what we expected") end
 
+    log(3, "readSavHook: beforeReadSav()")
     callbacks.beforeReadSav()
     
+    log(3, "readSavHook: originalReadSav()")
     local result = originalReadSav(this, customMapSectionInfoArray)
 
+    log(3, "readSavHook: afterReadSav()")
     callbacks.afterReadSav()
 
     return result
@@ -54,10 +57,13 @@ local function registerReadWriteSavHooks(customMapSectionInfoArray, customSectio
   originalWriteSav = core.hookCode(function(this, ptrMapSectionAddressArray)
     if originalMapSectionInfoArray ~= ptrMapSectionAddressArray then error("argument is not what we expected") end
 
+    log(3, "writeSavHook: beforeWriteSav()")
     callbacks.beforeWriteSav()
     
+    log(3, "writeSavHook: originalWriteSav()")
     local result = originalWriteSav(this, customMapSectionInfoArray)
 
+    log(3, "writeSavHook: afterWriteSav()")
     callbacks.afterWriteSav()
 
     return result
@@ -91,6 +97,7 @@ local function registerReadWriteSavHooks(customMapSectionInfoArray, customSectio
 
     if i == -1 then
 
+      log(3, "afterReadDirectoryOfSav({size = 0})")
       callbacks.afterReadDirectoryOfSav({
         size = 0,
       })
@@ -100,6 +107,7 @@ local function registerReadWriteSavHooks(customMapSectionInfoArray, customSectio
 
     local customSectionSizeOfSav = core.readInteger(uncompressedSizesArray + (4 * i))
 
+    log(3, "afterReadDirectoryOfSav({size = ...})")
     callbacks.afterReadDirectoryOfSav({
       size = customSectionSizeOfSav,
     })
