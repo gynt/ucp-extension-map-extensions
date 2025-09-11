@@ -22,7 +22,7 @@ local sections = {
     ---@param handle ReadHandle
     deserialize = function(self, handle)
       if not handle:exists("meta.yml") then
-        log(INFO, "map file is missing meta information")  
+        log(WARNING, "map file is missing meta information")  
         return
       end
 
@@ -35,11 +35,11 @@ local sections = {
       local receivedConfig = handle:get("ucp-config.yml")
       local extensions = handle:get("extensions.yml")
 
-      log(INFO, "map file was made using the following extensions:")
-      log(INFO, '\n' .. extensions)
+      log(DEBUG, "map file was made using the following extensions:")
+      log(DEBUG, '\n' .. extensions)
 
-      log(INFO, "map file contained the following config:")
-      log(INFO, '\n' .. receivedConfig)
+      log(DEBUG, "map file contained the following config:")
+      log(DEBUG, '\n' .. receivedConfig)
     end,
   }
 }

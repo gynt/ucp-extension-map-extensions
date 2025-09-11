@@ -13,20 +13,20 @@ local handles = require("mapextensions.handles")
 local callbacks = {
 
   beforeReadSav = function()
-    log(DEBUG, "before read sav")
+    log(VERBOSE, "before read sav")
 
     -- wipe it! Maybe not necessary because zip procedure simply stops reading?
     -- core.setMemory(customSectionAddress, 0, CUSTOM_SECTION_SIZE)
   end,
   
   afterReadDirectoryOfSav = function(info)
-    log(DEBUG, "after read directory of sav file")
+    log(VERBOSE, "after read directory of sav file")
 
     -- At this point, the directory section of the sav file has been read, containing meta info about the file
     local length = info.size
 
     if length == 0 then
-      log(DEBUG, "no custom section present")
+      log(DEBUG, "afterReadDirectoryOfSav(): no custom section present")
     end
 
     if length > constants.CUSTOM_SECTION_SIZE then
@@ -39,10 +39,16 @@ local callbacks = {
   end,
   
   afterReadSav = function()
-    log(DEBUG, "after read sav")
+    log(VERBOSE, "after read sav")
 
     if memory.customSectionInfoObject.size <= 0 then
-      log(DEBUG, "no custom section present")
+      log(DEBUG, "afterReadSav(): no custom section present")
+      log(DEBUG, "running initialization callbacks:")
+      for extensionName, callbacks in pairs(registry) do
+        if callbacks.initialize ~= nil then
+          callbacks:initialize()
+        end
+      end
       return
     end
 
@@ -65,7 +71,7 @@ local callbacks = {
   end,
   
   beforeWriteSav = function()
-    log(DEBUG, "before write sav")
+    log(VERBOSE, "before write sav")
     
     local zipHandle = luamemzip:MemoryZip(nil, constants.CUSTOM_SECTION_ZIP_COMPRESSION, 'w')
 
@@ -98,7 +104,7 @@ local callbacks = {
   end,
   
   afterWriteSav = function()
-    log(DEBUG, "after write sav")
+    log(VERBOSE, "after write sav")
   end,
 
 }

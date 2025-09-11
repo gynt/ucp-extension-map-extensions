@@ -43,14 +43,16 @@ function ReadHandle.exists(self, path ) return false end
 ---@class SerializationCallbacks
 local SerializationCallbacks = {}
 
+---When called, the extension should set (or reset) the data to a default state
+---@return void
+function SerializationCallbacks:initialize() end
+
 ---When called, the extension should use the handle to serialize all information
----@param self SerializationCallbacks this
 ---@param handle WriteHandle the handle to serialize data
 ---@return void
-function SerializationCallbacks.serialize(self, handle) end
+function SerializationCallbacks:serialize(handle) end
 
 ---When called, the extension should use the handle to deserialize all information
----@param self SerializationCallbacks this
 ---@param handle ReadHandle the handle to deserialize data
 ---@return void
-function SerializationCallbacks.deserialize(self, handle) end
+function SerializationCallbacks:deserialize(handle) end
