@@ -1,3 +1,5 @@
+---@diagnostic disable-next-line: undefined-global
+local yaml = yaml
 
 ---Deproxifies a table
 ---@type fun(t: table):table
@@ -6,6 +8,10 @@ local Deproxy = extensions.proxies.Deproxy
 ---@type table<string, SerializationCallbacks>
 local sections = {
   framework = {
+    initialize = function()
+      
+    end,
+
     ---@param handle WriteHandle
     serialize = function(self, handle)
       handle:put("ucp-config.yml", yaml.dump(Deproxy(USER_CONFIG)))

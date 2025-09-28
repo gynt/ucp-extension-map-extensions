@@ -1,4 +1,4 @@
----@module memory
+---@module "memory"
 local memory = {}
 
 local constants = require("mapextensions.constants")
