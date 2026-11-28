@@ -1,6 +1,9 @@
 # UCP Extension: map-extensions
 UCP Extension that enables storing extra information in .map and .sav files
 
+Sections are optional by default: a save made with a module that is now missing still loads.
+A module can mark its section required; see [docs/required-state.md](docs/required-state.md).
+
 ## Idea
 A .map file has sections. How to read these sections and where to store the data is stored in the .exe file.
 Currently that array is 123 entries long (.msv files use all of those). It cannot be expanded.
